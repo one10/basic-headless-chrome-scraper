@@ -13,6 +13,11 @@ logger.add(new winston.transports.Console({
   format: winston.format.simple()
 }));
 
+const settings = {
+  sleepDurationMin: 500, // milliseconds
+  sleepDurationMax: 1000, // milliseconds
+};
+
 const TEST_TERMS = {
   terms: [
     {
@@ -34,6 +39,11 @@ async function run() {
 
 exports.run = run;
 
+function sleep(ms) {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms)
+  })
+}
 
 class Driver {
 
@@ -119,9 +129,14 @@ class Page {
     for (const {term} of terms) {
       logger.debug(`doing checkForTerm: '${term}'`);
       const result = {};
-      result[`${term}`] = await this.checkForTerm(term);
+      const found = await this.checkForTerm(term);
+      result[`${term}`] = found;
       await results.push(result);
       logger.debug(`done with checkForTerm: '${term}'`);
+      const sleepTime = Math.random() * (settings.sleepDurationMax - settings.sleepDurationMin) + settings.sleepDurationMin;
+      logger.info(`${term}: ${found}`);
+      logger.debug(`Sleeping for ${sleepTime} ms`);
+      await sleep(sleepTime);
     }
     return results;
   }

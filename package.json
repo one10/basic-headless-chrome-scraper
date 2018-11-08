@@ -1,14 +1,14 @@
 {
-  "name": "proj-test00",
+  "name": "basic-headless-chrome-scraper",
   "version": "1.0.0",
-  "description": "",
+  "description": "https://github.com/one10/basic-headless-chrome-scraper",
   "main": "index.js",
   "scripts": {
     "start": "node $NODE_DEBUG_OPTION index.js",
     "test": "test"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "https://github.com/one10",
+  "license": "MIT",
   "dependencies": {
     "lodash": "^4.17.11",
     "puppeteer": "^1.10.0",

@@ -31,9 +31,9 @@ const TEST_TERMS = {
   ]
 };
 
-async function run() {
+async function run(pageClass) {
   const driver = new Driver(!_.isNil(inputData) && !_.isNil(inputData.terms) ? inputData.terms : TEST_TERMS.terms);
-  await driver.run();
+  await driver.run(pageClass);
   logger.info('*** done');
 }
 
@@ -49,6 +49,7 @@ class Driver {
 
   async initBrowser() {
     this.browser = await puppeteer.launch({
+      headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox'
@@ -74,9 +75,9 @@ class Driver {
     this.terms = terms;
   }
 
-  async run() {
+  async run(pageClass) {
     await this.initBrowser();
-    const page = new WikipediaSearchPage(this);
+    const page = new pageClass(this);
     const result = await page.getSuccessfulSearchTerms(this.terms);
     logger.info(JSON.stringify(result, null, 2));
 
@@ -84,12 +85,29 @@ class Driver {
   }
 }
 
-class Page {
+/**
+ * @classdesc Abstract class that represents a site being scraped. Contains selectors and base mechanics for site nav.
+ *
+ * @name Site
+ * @class
+ */
+class Site {
   constructor(driver) {
+    if (new.target === Site) {
+      throw new TypeError("Cannot construct abstract Site instances directly");
+    }
     this.driver = driver;
   }
 
   getStartUrl() {
+    if (this) throw new TypeError("Not implemented");
+  };
+
+  getSearchInputSelector() {
+    if (this) throw new TypeError("Not implemented");
+  };
+
+  getSearchSubmitSelector() {
     if (this) throw new TypeError("Not implemented");
   };
 
@@ -105,6 +123,14 @@ class Page {
     if (this) throw new TypeError("Not implemented");
   };
 
+  getSleepDurationMin() {
+    if (this) return settings.sleepDurationMin;
+  };
+
+  getSleepDurationMax() {
+    if (this) return settings.sleepDurationMax;
+  };
+
   async isSearchSucessful(page) {
     const realValue = await page.$eval(this.getSearchResultsSelector(), el => el.innerText);
     const searchResultsFound = realValue.match(this.getSearchResultsFoundRegexp());
@@ -112,15 +138,38 @@ class Page {
     return searchResultsFound && !searchResultsNotFound;
   }
 
+  /**
+   * This method performs any custom steps to prepare for searching a website.
+   *
+   * Implemented using a 'symbol' to mark it private.
+   *
+   * @method
+   * @name Site#['beforeSearch']
+   * @param page {Object} puppeteer Page object for the search page.
+   * @param term {string} search term strin.
+   */
+  async ['beforeSearch'](page, term) {
+  }
+
+  async ['doSearch'](page, term) {
+    await page.waitForSelector(this.getSearchInputSelector());
+    await page.focus(this.getSearchInputSelector());
+    await page.keyboard.type(term);
+    await page.$eval(this.getSearchSubmitSelector(), form => form.submit());
+    await page.waitForSelector(this.getSearchResultsSelector());
+  }
+
+  async ['afterSearch'](page, term) {
+  }
+
   async checkForTerm(term) {
     const page = await this.driver.getBrowser().newPage();
     await page.setUserAgent(Driver.getGlobalUserAgentString());
     await page.goto(this.getStartUrl());
-    await page.focus('#searchInput');
-    await page.keyboard.type(term);
-    await page.$eval('#searchform', form => form.submit());
-    await page.waitForSelector('#mw-content-text p');
-    logger.debug(`Using the following UA string: ${await page.evaluate('navigator.userAgent')}`);
+    await this['beforeSearch'](page, term);
+    await this['doSearch'](page, term);
+    logger.debug(`Used the following UA string: ${await page.evaluate('navigator.userAgent')}`);
+    await this['afterSearch'](page, term);
     return await this.isSearchSucessful(page);
   }
 
@@ -133,7 +182,8 @@ class Page {
       result[`${term}`] = found;
       await results.push(result);
       logger.debug(`done with checkForTerm: '${term}'`);
-      const sleepTime = Math.random() * (settings.sleepDurationMax - settings.sleepDurationMin) + settings.sleepDurationMin;
+      const sleepTime =
+        Math.random() * (this.getSleepDurationMax() - this.getSleepDurationMin()) + this.getSleepDurationMin();
       logger.info(`${term}: ${found}`);
       logger.debug(`Sleeping for ${sleepTime} ms`);
       await sleep(sleepTime);
@@ -142,14 +192,34 @@ class Page {
   }
 }
 
-class WikipediaSearchPage extends Page {
+exports.Site = Site;
+
+
+/**
+ * @classdesc Note: Wikipedia is only an example here. It's pointless to try to scrape it, all the data is downloadable!
+ *
+ * @name WikipediaSearch
+ * @class
+ */
+class WikipediaSearch extends Site {
   constructor(driver) {
     super(driver);
+  }
+
+  async ['beforeSearch'](page, term) {
   }
 
   getStartUrl() {
     return "https://en.wikipedia.org/wiki/Main_Page";
   }
+
+  getSearchInputSelector() {
+    return '#searchInput';
+  };
+
+  getSearchSubmitSelector() {
+    return '#searchform';
+  };
 
   getSearchResultsSelector() {
     return '#mw-content-text p';
@@ -164,3 +234,5 @@ class WikipediaSearchPage extends Page {
     return /The page ".*" does not exist. You can ask for it to be created./;
   };
 }
+
+exports.WikipediaSearch = WikipediaSearch;

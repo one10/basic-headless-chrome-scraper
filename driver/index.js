@@ -244,7 +244,7 @@ class WikipediaSearch extends Site {
   };
 
   getSearchResultsFoundRegexp() {
-    // loose: anything will work for this this.browserTabPage, as long as getSearchResultsNotFoundRegexp didn't match
+    // loose: anything will work for this page, as long as getSearchResultsNotFoundRegexp didn't match
     return /.*/;
   };
 

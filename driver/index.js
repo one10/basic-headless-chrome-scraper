@@ -10,7 +10,10 @@ const logger = winston.createLogger({
 });
 
 logger.add(new winston.transports.Console({
-  format: winston.format.simple()
+  format: winston.format.simple(),
+  prettyPrint: true,
+  handleExceptions: true,
+  exitOnError: false
 }));
 
 const settings = {
@@ -195,12 +198,26 @@ class Site {
     const results = [];
     for (const {term} of terms) {
       logger.debug(`doing checkForTerm: '${term}'`);
-      const result = {};
-      const found = await this.checkForTerm(term);
-      result[`${term}`] = found;
-      await results.push(result);
+
+      let found = null;
+
+      let attempts = 0;
+      while (true) {
+        try {
+          found = await this.checkForTerm(term);
+          break;
+        } catch (error) {
+          if (++attempts === 3) {
+            logger.error(`Tried scraping term ${term} several times, got an error, marking it null and moving on`);
+            logger.error(error.stack);
+            break;
+          }
+        }
+      }
+
+      await results.push({term, found});
       logger.debug(`done with checkForTerm: '${term}'`);
-      const sleepTime =
+      let sleepTime =
         Math.random() * (this.getSleepDurationMax() - this.getSleepDurationMin()) + this.getSleepDurationMin();
       logger.info(`${term}: ${found}`);
       logger.debug(`Sleeping for ${sleepTime} ms`);

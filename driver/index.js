@@ -77,8 +77,9 @@ class Driver {
 
   async run(siteClass) {
     await this.initBrowser();
-    const page = new siteClass(this);
-    const result = await page.getSuccessfulSearchTerms(this.terms);
+    const site = new siteClass(this);
+    await site.initSite(); // only use one tab for all searches, otherwise it breeds tons of processes
+    const result = await site.getSuccessfulSearchTerms(this.terms);
     logger.info(JSON.stringify(result, null, 2));
 
     await this.closeBrowser();
@@ -131,10 +132,22 @@ class Site {
     if (this) return settings.sleepDurationMax;
   };
 
-  async isSearchSucessful(page) {
-    const realValue = await page.$eval(this.getSearchResultsSelector(), el => el.innerText);
-    const searchResultsFound = realValue.match(this.getSearchResultsFoundRegexp());
-    const searchResultsNotFound = realValue.match(this.getSearchResultsNotFoundRegexp());
+
+  /**
+   * As you browse, inject a human-looking delay between operations on elements.
+   *
+   * @method
+   * @name Site#getHumanDelay
+   */
+  getHumanDelay() {
+    // TODO(one10): should be randomized
+    if (this) return 500;
+  }
+
+  async isSearchSucessful() {
+    const realValue = await this.browserTabPage.$eval(this.getSearchResultsSelector(), el => el.innerText);
+    const searchResultsFound = !_.isNil(realValue.match(this.getSearchResultsFoundRegexp()));
+    const searchResultsNotFound = !_.isNil(realValue.match(this.getSearchResultsNotFoundRegexp()));
     return searchResultsFound && !searchResultsNotFound;
   }
 
@@ -145,32 +158,37 @@ class Site {
    *
    * @method
    * @name Site#['beforeSearch']
-   * @param page {Object} puppeteer Page object for the search page.
    * @param term {string} search term strin.
    */
-  async ['beforeSearch'](page, term) {
+  async ['beforeSearch'](term) {
   }
 
-  async ['doSearch'](page, term) {
-    await page.waitForSelector(this.getSearchInputSelector());
-    await page.focus(this.getSearchInputSelector());
-    await page.keyboard.type(term);
-    await page.$eval(this.getSearchSubmitSelector(), form => form.submit());
-    await page.waitForSelector(this.getSearchResultsSelector());
+  async ['doSearch'](term) {
+    await this.browserTabPage.waitForSelector(this.getSearchInputSelector());
+    await this.browserTabPage.waitFor(this.getHumanDelay());
+    await this.browserTabPage.focus(this.getSearchInputSelector());
+    await this.browserTabPage.waitFor(this.getHumanDelay());
+    await this.browserTabPage.keyboard.type(term);
+    await this.browserTabPage.waitFor(this.getHumanDelay());
+    await this.browserTabPage.$eval(this.getSearchSubmitSelector(), form => form.submit(), {"waitUntil": "networkidle0"});
+    await this.browserTabPage.waitForSelector(this.getSearchResultsSelector(), {"waitUntil": "networkidle0"});
   }
 
-  async ['afterSearch'](page, term) {
+  async ['afterSearch'](term) {
   }
 
   async checkForTerm(term) {
-    const page = await this.driver.getBrowser().newPage();
-    await page.setUserAgent(Driver.getGlobalUserAgentString());
-    await page.goto(this.getStartUrl());
-    await this['beforeSearch'](page, term);
-    await this['doSearch'](page, term);
-    logger.debug(`Used the following UA string: ${await page.evaluate('navigator.userAgent')}`);
-    await this['afterSearch'](page, term);
-    return await this.isSearchSucessful(page);
+    await this.browserTabPage.goto(this.getStartUrl());
+    await this['beforeSearch'](term);
+    await this['doSearch'](term);
+    logger.debug(`Used the following UA string: ${await this.browserTabPage.evaluate('navigator.userAgent')}`);
+    await this['afterSearch'](term);
+    return await this.isSearchSucessful();
+  }
+
+  async initSite() {
+    this.browserTabPage = await this.driver.getBrowser().newPage();
+    await this.browserTabPage.setUserAgent(Driver.getGlobalUserAgentString());
   }
 
   async getSuccessfulSearchTerms(terms) {
@@ -193,46 +211,3 @@ class Site {
 }
 
 exports.Site = Site;
-
-
-/**
- * @classdesc Note: Wikipedia is only an example here. It's pointless to try to scrape it, all the data is downloadable!
- *
- * @name WikipediaSearch
- * @class
- */
-class WikipediaSearch extends Site {
-  constructor(driver) {
-    super(driver);
-  }
-
-  async ['beforeSearch'](page, term) {
-  }
-
-  getStartUrl() {
-    return "https://en.wikipedia.org/wiki/Main_Page";
-  }
-
-  getSearchInputSelector() {
-    return '#searchInput';
-  };
-
-  getSearchSubmitSelector() {
-    return '#searchform';
-  };
-
-  getSearchResultsSelector() {
-    return '#mw-content-text p';
-  };
-
-  getSearchResultsFoundRegexp() {
-    // loose: anything will work for this page, as long as getSearchResultsNotFoundRegexp didn't match
-    return /.*/;
-  };
-
-  getSearchResultsNotFoundRegexp() {
-    return /The page ".*" does not exist. You can ask for it to be created./;
-  };
-}
-
-exports.WikipediaSearch = WikipediaSearch;

@@ -31,9 +31,9 @@ const TEST_TERMS = {
   ]
 };
 
-async function run(pageClass) {
+async function run(siteClass) {
   const driver = new Driver(!_.isNil(inputData) && !_.isNil(inputData.terms) ? inputData.terms : TEST_TERMS.terms);
-  await driver.run(pageClass);
+  await driver.run(siteClass);
   logger.info('*** done');
 }
 
@@ -75,9 +75,9 @@ class Driver {
     this.terms = terms;
   }
 
-  async run(pageClass) {
+  async run(siteClass) {
     await this.initBrowser();
-    const page = new pageClass(this);
+    const page = new siteClass(this);
     const result = await page.getSuccessfulSearchTerms(this.terms);
     logger.info(JSON.stringify(result, null, 2));
 

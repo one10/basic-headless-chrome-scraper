@@ -3,6 +3,7 @@
 const puppeteer = require('puppeteer');
 const winston = require('winston');
 const _ = require('lodash');
+const inputData = require("../data/data.json");
 
 const logger = winston.createLogger({
   level: 'info',
@@ -12,16 +13,37 @@ logger.add(new winston.transports.Console({
   format: winston.format.simple()
 }));
 
-const TERMS = ['test', '077ba9e8c0e6d177f74ccc1cd42aa08a'];
+const settings = {
+  sleepDurationMin: 500, // milliseconds
+  sleepDurationMax: 1000, // milliseconds
+};
+
+const TEST_TERMS = {
+  terms: [
+    {
+      term: "test",
+      comment: "probably will find this"
+    },
+    {
+      term: "ad1e173036d90f78b94213e21cb4109d",
+      state: "probably will not find this"
+    }
+  ]
+};
 
 async function run() {
-  const driver = new Driver(TERMS);
+  const driver = new Driver(!_.isNil(inputData) && !_.isNil(inputData.terms) ? inputData.terms : TEST_TERMS.terms);
   await driver.run();
   logger.info('*** done');
 }
 
 exports.run = run;
 
+function sleep(ms) {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms)
+  })
+}
 
 class Driver {
 
@@ -56,7 +78,7 @@ class Driver {
     await this.initBrowser();
     const page = new WikipediaSearchPage(this);
     const result = await page.getSuccessfulSearchTerms(this.terms);
-    logger.info(JSON.stringify(result));
+    logger.info(JSON.stringify(result, null, 2));
 
     await this.closeBrowser();
   }
@@ -104,12 +126,17 @@ class Page {
 
   async getSuccessfulSearchTerms(terms) {
     const results = [];
-    for (const term of terms) {
+    for (const {term} of terms) {
       logger.debug(`doing checkForTerm: '${term}'`);
       const result = {};
-      result[`${term}`] = await this.checkForTerm(term);
+      const found = await this.checkForTerm(term);
+      result[`${term}`] = found;
       await results.push(result);
       logger.debug(`done with checkForTerm: '${term}'`);
+      const sleepTime = Math.random() * (settings.sleepDurationMax - settings.sleepDurationMin) + settings.sleepDurationMin;
+      logger.info(`${term}: ${found}`);
+      logger.debug(`Sleeping for ${sleepTime} ms`);
+      await sleep(sleepTime);
     }
     return results;
   }

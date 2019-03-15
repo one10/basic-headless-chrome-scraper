@@ -1,5 +1,3 @@
-
-
 const puppeteer = require('puppeteer');
 const winston = require('winston');
 const _ = require('lodash');
@@ -105,27 +103,27 @@ class Site {
   }
 
   getStartUrl() {
-    if (this) throw new TypeError('Not implemented');
+    throw new TypeError(`Not implemented for ${this.constructor.name}`);
   }
 
   getSearchInputSelector() {
-    if (this) throw new TypeError('Not implemented');
+    throw new TypeError(`Not implemented for ${this.constructor.name}`);
   }
 
   getSearchSubmitSelector() {
-    if (this) throw new TypeError('Not implemented');
+    throw new TypeError(`Not implemented for ${this.constructor.name}`);
   }
 
   getSearchResultsSelector() {
-    if (this) throw new TypeError('Not implemented');
+    throw new TypeError(`Not implemented for ${this.constructor.name}`);
   }
 
   getSearchResultsFoundRegexp() {
-    if (this) throw new TypeError('Not implemented');
+    throw new TypeError(`Not implemented for ${this.constructor.name}`);
   }
 
   getSearchResultsNotFoundRegexp() {
-    if (this) throw new TypeError('Not implemented');
+    throw new TypeError(`Not implemented for ${this.constructor.name}`);
   }
 
   getSleepDurationMin() {
@@ -165,6 +163,7 @@ class Site {
    * @param term {string} search term strin.
    */
   async ['beforeSearch'](term) {
+    logger.debug(`entered ${this.constructor.name}.beforeSearch`);
   }
 
   async ['doSearch'](term) {
@@ -179,6 +178,7 @@ class Site {
   }
 
   async ['afterSearch'](term) {
+    logger.debug(`entered ${this.constructor.name}.afterSearch`);
   }
 
   async checkForTerm(term) {
@@ -187,11 +187,13 @@ class Site {
     await this.doSearch(term);
     logger.debug(`Used the following UA string: ${await this.browserTabPage.evaluate('navigator.userAgent')}`);
     await this.afterSearch(term);
-    return await this.isSearchSucessful();
+    const result = await this.isSearchSucessful();
+    return result;
   }
 
   async initSite() {
-    this.browserTabPage = await this.driver.getBrowser().newPage();
+    this.browserTabPage = await this.driver.getBrowser()
+      .newPage();
     await this.browserTabPage.setUserAgent(Driver.getGlobalUserAgentString());
   }
 
@@ -216,7 +218,10 @@ class Site {
         }
       }
 
-      await results.push({term, found});
+      await results.push({
+        term,
+        found,
+      });
       logger.debug(`done with checkForTerm: '${term}'`);
       const sleepTime = Math.random() * (this.getSleepDurationMax() - this.getSleepDurationMin()) + this.getSleepDurationMin();
       logger.info(`${term}: ${found}`);

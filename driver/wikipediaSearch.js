@@ -7,36 +7,30 @@ const {Site} = require('./index');
  * @class
  */
 class WikipediaSearch extends Site {
-  constructor(driver) {
-    super(driver);
-  }
-
-  async ['beforeSearch'](term) {
-  }
 
   getStartUrl() {
-    return 'https://en.wikipedia.org/wiki/Main_Page';
+    if (this) return 'https://en.wikipedia.org/wiki/Main_Page';
   }
 
   getSearchInputSelector() {
-    return '#searchInput';
+    if (this) return '#searchInput';
   }
 
   getSearchSubmitSelector() {
-    return '#searchform';
+    if (this) return '#searchform';
   }
 
   getSearchResultsSelector() {
-    return '#mw-content-text p';
+    if (this) return '#mw-content-text p';
   }
 
   getSearchResultsFoundRegexp() {
     // loose: anything will work for this page, as long as getSearchResultsNotFoundRegexp didn't match
-    return /.*/;
+    if (this) return /.*/;
   }
 
   getSearchResultsNotFoundRegexp() {
-    return /The page ".*" does not exist. You can ask for it to be created./;
+    if (this) return /The page ".*" does not exist. You can ask for it to be created./;
   }
 }
 

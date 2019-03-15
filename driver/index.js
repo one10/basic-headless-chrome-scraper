@@ -199,18 +199,19 @@ class Site {
 
   async getSuccessfulSearchTerms(terms) {
     const results = [];
-    for (const {term} of terms) {
+    for (const {term} of terms) { // eslint-disable-line no-restricted-syntax
       logger.debug(`doing checkForTerm: '${term}'`);
 
       let found = null;
 
       let attempts = 0;
-      while (true) {
+      while (true) { // eslint-disable-line no-constant-condition
         try {
-          found = await this.checkForTerm(term);
+          found = await this.checkForTerm(term); // eslint-disable-line no-await-in-loop
           break;
         } catch (error) {
-          if (++attempts === 3) {
+          if (attempts === 3) {
+            attempts += 1;
             logger.error(`Tried scraping term ${term} several times, got an error, marking it null and moving on`);
             logger.error(error.stack);
             break;
@@ -218,7 +219,7 @@ class Site {
         }
       }
 
-      await results.push({
+      await results.push({ // eslint-disable-line no-await-in-loop
         term,
         found,
       });
@@ -226,7 +227,7 @@ class Site {
       const sleepTime = Math.random() * (this.getSleepDurationMax() - this.getSleepDurationMin()) + this.getSleepDurationMin();
       logger.info(`${term}: ${found}`);
       logger.debug(`Sleeping for ${sleepTime} ms`);
-      await sleep(sleepTime);
+      await sleep(sleepTime); // eslint-disable-line no-await-in-loop
     }
     return results;
   }

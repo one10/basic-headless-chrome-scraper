@@ -7,7 +7,6 @@ const {Site} = require('./index');
  * @class
  */
 class WikipediaSearch extends Site {
-
   getStartUrl() {
     if (this) return 'https://en.wikipedia.org/wiki/Main_Page';
   }

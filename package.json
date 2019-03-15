@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "https://github.com/one10/basic-headless-chrome-scraper",
   "main": "index.js",
+  "jest": {
+  },
   "scripts": {
     "start": "node $NODE_DEBUG_OPTION index.js",
-    "test": "node_modules/.bin/nyc --reporter=cobertura node_modules/mocha/bin/mocha --timeout 30000 test/unit/**/*.test.js",
-    "coverage": "./node_modules/jest/node_modules/.bin/jest --coverage",
+    "unit-test": "node_modules/.bin/nyc --reporter=cobertura node_modules/mocha/bin/mocha --timeout 30000 test/unit/**/*.test.js",
+    "unit-coverage": "./node_modules/jest/node_modules/.bin/jest --coverage --modulePathIgnorePatterns='integration'",
+    "integration-coverage": "./node_modules/jest/node_modules/.bin/jest --coverage --modulePathIgnorePatterns='unit'",
     "lint": "eslint **/*.js --ignore-pattern node_modules/"
   },
   "author": "https://github.com/one10",

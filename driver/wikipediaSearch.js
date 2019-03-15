@@ -15,29 +15,29 @@ class WikipediaSearch extends Site {
   }
 
   getStartUrl() {
-    return "https://en.wikipedia.org/wiki/Main_Page";
+    return 'https://en.wikipedia.org/wiki/Main_Page';
   }
 
   getSearchInputSelector() {
     return '#searchInput';
-  };
+  }
 
   getSearchSubmitSelector() {
     return '#searchform';
-  };
+  }
 
   getSearchResultsSelector() {
     return '#mw-content-text p';
-  };
+  }
 
   getSearchResultsFoundRegexp() {
     // loose: anything will work for this page, as long as getSearchResultsNotFoundRegexp didn't match
     return /.*/;
-  };
+  }
 
   getSearchResultsNotFoundRegexp() {
     return /The page ".*" does not exist. You can ask for it to be created./;
-  };
+  }
 }
 
 exports.WikipediaSearch = WikipediaSearch;

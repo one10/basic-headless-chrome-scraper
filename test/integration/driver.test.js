@@ -36,9 +36,9 @@ const TEST_TERMS = {
   ],
 };
 
-describe('Basic sanity checks on the driver', () => {
+describe('Basic sanity intergration checks on the driver', () => {
 
-  it('Testing UA string', async(done) => {
+  it('Initialize the browser, site, close the browser', async(done) => {
     const driver = new Driver(TEST_TERMS.terms);
 
     await driver.initBrowser();

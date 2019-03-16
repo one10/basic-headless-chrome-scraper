@@ -3,26 +3,41 @@
   "version": "1.0.0",
   "description": "https://github.com/one10/basic-headless-chrome-scraper",
   "main": "index.js",
+  "jest": {
+  },
   "scripts": {
     "start": "node $NODE_DEBUG_OPTION index.js",
-    "test": "test"
+    "unit-test": "node_modules/.bin/nyc --reporter=cobertura node_modules/mocha/bin/mocha --timeout 30000 test/unit/**/*.test.js",
+    "unit-coverage": "./node_modules/jest/node_modules/.bin/jest --coverage --modulePathIgnorePatterns='integration'",
+    "integration-coverage": "./node_modules/jest/node_modules/.bin/jest --coverage --modulePathIgnorePatterns='unit'",
+    "lint": "eslint **/*.js --ignore-pattern node_modules/"
   },
   "author": "https://github.com/one10",
   "license": "MIT",
   "dependencies": {
+    "chance": "^1.0.18",
+    "just-extend": ">=4.0.0",
     "lodash": "^4.17.11",
     "puppeteer": "^1.10.0",
     "winston": "^3.1.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "chai-datetime": "^1.5.0",
+    "chai-http": "^4.2.1",
+    "chai-string": "^1.5.0",
     "dirty-chai": "^2.0.1",
-    "eslint": "^5.8.0",
-    "eslint-config-stripe": "^1.2.0",
-    "eslint-plugin-import": "^2.14.0",
+    "eslint": "^5.15.2",
+    "eslint-config-stripe": "^1.2.1",
+    "eslint-plugin-import": "^2.16.0",
+    "istanbul": "^0.4.5",
+    "jest": "^24.5.0",
     "mocha": "^5.2.0",
     "mocha-junit-reporter": "^1.18.0",
-    "sinon": "^7.1.1",
-    "supertest": "^3.3.0"
+    "nyc": "^13.3.0",
+    "read": "^1.0.7",
+    "sinon": "^7.2.7",
+    "supertest": "^3.4.2"
   }
 }

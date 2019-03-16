@@ -1,9 +1,7 @@
-'use strict';
-
 const puppeteer = require('puppeteer');
 const winston = require('winston');
 const _ = require('lodash');
-const inputData = require("../data/data.json");
+const inputData = require('../data/data.json');
 
 const logger = winston.createLogger({
   level: 'info',
@@ -13,7 +11,7 @@ logger.add(new winston.transports.Console({
   format: winston.format.simple(),
   prettyPrint: true,
   handleExceptions: true,
-  exitOnError: false
+  exitOnError: false,
 }));
 
 const settings = {
@@ -24,14 +22,14 @@ const settings = {
 const TEST_TERMS = {
   terms: [
     {
-      term: "test",
-      comment: "probably will find this"
+      term: 'test',
+      comment: 'probably will find this',
     },
     {
-      term: "ad1e173036d90f78b94213e21cb4109d",
-      state: "probably will not find this"
-    }
-  ]
+      term: 'ad1e173036d90f78b94213e21cb4109d',
+      state: 'probably will not find this',
+    },
+  ],
 };
 
 async function run(siteClass) {
@@ -43,20 +41,19 @@ async function run(siteClass) {
 exports.run = run;
 
 function sleep(ms) {
-  return new Promise(resolve => {
-    setTimeout(resolve, ms)
-  })
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 class Driver {
-
   async initBrowser() {
     this.browser = await puppeteer.launch({
       headless: true,
       args: [
         '--no-sandbox',
-        '--disable-setuid-sandbox'
-      ]
+        '--disable-setuid-sandbox',
+      ],
     });
     logger.info('launched the browser');
   }
@@ -66,8 +63,8 @@ class Driver {
   }
 
   static getGlobalUserAgentString() {
-    return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
-      "Chrome/70.0.3163.100 Safari/537.36";
+    return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+      + 'Chrome/70.0.3163.100 Safari/537.36';
   }
 
   async closeBrowser() {
@@ -89,6 +86,8 @@ class Driver {
   }
 }
 
+exports.Driver = Driver;
+
 /**
  * @classdesc Abstract class that represents a site being scraped. Contains selectors and base mechanics for site nav.
  *
@@ -98,42 +97,42 @@ class Driver {
 class Site {
   constructor(driver) {
     if (new.target === Site) {
-      throw new TypeError("Cannot construct abstract Site instances directly");
+      throw new TypeError('Cannot construct abstract Site instances directly');
     }
     this.driver = driver;
   }
 
   getStartUrl() {
-    if (this) throw new TypeError("Not implemented");
-  };
+    throw new TypeError(`Not implemented for ${this.constructor.name}`);
+  }
 
   getSearchInputSelector() {
-    if (this) throw new TypeError("Not implemented");
-  };
+    throw new TypeError(`Not implemented for ${this.constructor.name}`);
+  }
 
   getSearchSubmitSelector() {
-    if (this) throw new TypeError("Not implemented");
-  };
+    throw new TypeError(`Not implemented for ${this.constructor.name}`);
+  }
 
   getSearchResultsSelector() {
-    if (this) throw new TypeError("Not implemented");
-  };
+    throw new TypeError(`Not implemented for ${this.constructor.name}`);
+  }
 
   getSearchResultsFoundRegexp() {
-    if (this) throw new TypeError("Not implemented");
-  };
+    throw new TypeError(`Not implemented for ${this.constructor.name}`);
+  }
 
   getSearchResultsNotFoundRegexp() {
-    if (this) throw new TypeError("Not implemented");
-  };
+    throw new TypeError(`Not implemented for ${this.constructor.name}`);
+  }
 
   getSleepDurationMin() {
     if (this) return settings.sleepDurationMin;
-  };
+  }
 
   getSleepDurationMax() {
     if (this) return settings.sleepDurationMax;
-  };
+  }
 
 
   /**
@@ -148,7 +147,7 @@ class Site {
   }
 
   async isSearchSucessful() {
-    const realValue = await this.browserTabPage.$eval(this.getSearchResultsSelector(), el => el.innerText);
+    const realValue = await this.browserTabPage.$eval(this.getSearchResultsSelector(), (el) => el.innerText);
     const searchResultsFound = !_.isNil(realValue.match(this.getSearchResultsFoundRegexp()));
     const searchResultsNotFound = !_.isNil(realValue.match(this.getSearchResultsNotFoundRegexp()));
     return searchResultsFound && !searchResultsNotFound;
@@ -164,6 +163,7 @@ class Site {
    * @param term {string} search term strin.
    */
   async ['beforeSearch'](term) {
+    logger.debug(`entered ${this.constructor.name}.beforeSearch`);
   }
 
   async ['doSearch'](term) {
@@ -173,41 +173,45 @@ class Site {
     await this.browserTabPage.waitFor(this.getHumanDelay());
     await this.browserTabPage.keyboard.type(term);
     await this.browserTabPage.waitFor(this.getHumanDelay());
-    await this.browserTabPage.$eval(this.getSearchSubmitSelector(), form => form.submit(), {"waitUntil": "networkidle0"});
-    await this.browserTabPage.waitForSelector(this.getSearchResultsSelector(), {"waitUntil": "networkidle0"});
+    await this.browserTabPage.$eval(this.getSearchSubmitSelector(), (form) => form.submit(), {waitUntil: 'networkidle0'});
+    await this.browserTabPage.waitForSelector(this.getSearchResultsSelector(), {waitUntil: 'networkidle0'});
   }
 
   async ['afterSearch'](term) {
+    logger.debug(`entered ${this.constructor.name}.afterSearch`);
   }
 
   async checkForTerm(term) {
     await this.browserTabPage.goto(this.getStartUrl());
-    await this['beforeSearch'](term);
-    await this['doSearch'](term);
+    await this.beforeSearch(term);
+    await this.doSearch(term);
     logger.debug(`Used the following UA string: ${await this.browserTabPage.evaluate('navigator.userAgent')}`);
-    await this['afterSearch'](term);
-    return await this.isSearchSucessful();
+    await this.afterSearch(term);
+    const result = await this.isSearchSucessful();
+    return result;
   }
 
   async initSite() {
-    this.browserTabPage = await this.driver.getBrowser().newPage();
+    this.browserTabPage = await this.driver.getBrowser()
+      .newPage();
     await this.browserTabPage.setUserAgent(Driver.getGlobalUserAgentString());
   }
 
   async getSuccessfulSearchTerms(terms) {
     const results = [];
-    for (const {term} of terms) {
+    for (const {term} of terms) { // eslint-disable-line no-restricted-syntax
       logger.debug(`doing checkForTerm: '${term}'`);
 
       let found = null;
 
       let attempts = 0;
-      while (true) {
+      while (true) { // eslint-disable-line no-constant-condition
         try {
-          found = await this.checkForTerm(term);
+          found = await this.checkForTerm(term); // eslint-disable-line no-await-in-loop
           break;
         } catch (error) {
-          if (++attempts === 3) {
+          if (attempts === 3) {
+            attempts += 1;
             logger.error(`Tried scraping term ${term} several times, got an error, marking it null and moving on`);
             logger.error(error.stack);
             break;
@@ -215,13 +219,15 @@ class Site {
         }
       }
 
-      await results.push({term, found});
+      await results.push({ // eslint-disable-line no-await-in-loop
+        term,
+        found,
+      });
       logger.debug(`done with checkForTerm: '${term}'`);
-      let sleepTime =
-        Math.random() * (this.getSleepDurationMax() - this.getSleepDurationMin()) + this.getSleepDurationMin();
+      const sleepTime = Math.random() * (this.getSleepDurationMax() - this.getSleepDurationMin()) + this.getSleepDurationMin();
       logger.info(`${term}: ${found}`);
       logger.debug(`Sleeping for ${sleepTime} ms`);
-      await sleep(sleepTime);
+      await sleep(sleepTime); // eslint-disable-line no-await-in-loop
     }
     return results;
   }
